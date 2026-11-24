@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#10151d">
+<meta name="description" content="Trading Command Centre — demo-only paper trading dashboard. Simulation only.">
+<title>Trading Command Centre</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+:root {
+  --bg: #0b1017;
+  --panel: #141c27;
+  --panel2: #192433;
+  --line: #263548;
+  --text: #edf3fb;
+  --muted: #8fa0b5;
+  --gold: #e4b84f;
+  --green: #39c98a;
+  --red: #f07878;
+  --blue: #79aef7;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 14px/1.45 Arial, Helvetica, sans-serif; -webkit-text-size-adjust: 100%; }
+header { padding: 18px 14px 12px; background: linear-gradient(135deg, #182333, #10151d); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 20; }
+.brand { font-size: 11px; letter-spacing: 2px; color: var(--gold); font-weight: bold; }
+.title { font-size: 20px; font-weight: 700; margin: 6px 0 2px; }
+.sub { color: var(--muted); font-size: 12px; }
+.wrap { max-width: 960px; margin: 0 auto; padding: 12px 12px 100px; }
+.notice { border: 1px solid #69552a; background: #2a2417; color: #f3d998; padding: 10px 12px; border-radius: 10px; font-size: 12px; line-height: 1.5; margin-bottom: 12px; }
+.tabs { display: flex; gap: 6px; overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 0 12px; padding-bottom: 2px; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab { background: var(--panel); border: 1px solid var(--line); color: var(--muted); padding: 9px 12px; border-radius: 9px; white-space: nowrap; font-size: 13px; cursor: pointer; flex-shrink: 0; }
+.tab.active { color: var(--gold); border-color: var(--gold); background: #262316; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+.row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.section { font-size: 16px; font-weight: bold; margin: 0 0 4px; }
+.hint { font-size: 12px; color: var(--muted); line-height: 1.45; }
+label { display: block; color: var(--muted); font-size: 12px; margin: 12px 0 5px; }
+select, input, textarea {
+  width: 100%; background: #0d141d; color: var(--text); border: 1px solid var(--line);
+  border-radius: 9px; padding: 11px 12px; font-size: 14px; outline: none;
+}
+textarea { min-height: 60px; resize: vertical; }
+button { border: 0; border-radius: 9px; padding: 10px 14px; font-weight: bold; cursor: pointer; font-size: 13px; }
+.primary { background: var(--gold); color: #17130a; }
+.secondary { background: #243449; color: var(--text); border: 1px solid #354b64; }
+.danger { background: #3a2226; color: #ffb0b0; border: 1px solid #704047; }
+.success { background: #15382e; color: #70e0b0; border: 1px solid #2a5c48; }
+.badge { font-size: 11px; padding: 5px 9px; border-radius: 20px; background: #263449; color: #a9c9f9; display: inline-block; }
+.badge.good { background: #15382e; color: #70e0b0; }
+.badge.warn { background: #3b301b; color: #f3d998; }
+.badge.bad { background: #3a2226; color: #ffb0b0; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.metric { background: #0e151e; border: 1px solid var(--line); border-radius: 10px; padding: 11px; }
+.metric small { color: var(--muted); display: block; margin-bottom: 6px; font-size: 11px; }
+.metric strong { font-size: 17px; display: block; }
+.metric .pos { color: var(--green); }
+.metric .neg { color: var(--red); }
+.brokerlist { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.brokeropt {
+  padding: 11px; border: 1px solid var(--line); border-radius: 10px; background: #0e151e;
+  color: var(--text); text-align: left; cursor: pointer;
+}
+.brokeropt.selected { border-color: var(--gold); background: #292416; }
+.brokeropt span { display: block; color: var(--muted); font-size: 11px; margin-top: 3px; }
+.instance, .trade-row {
+  background: #0e151e; border: 1px solid var(--line); border-radius: 10px;
+  padding: 11px; margin-top: 8px;
+}
+.instance strong, .trade-row strong { display: block; margin-bottom: 3px; }
+.instance small, .trade-row small { color: var(--muted); font-size: 12px; }
+.hidden { display: none !important; }
+.footer {
+  position: fixed; bottom: 0; left: 0; right: 0; background: #101720;
+  border-top: 1px solid var(--line); padding: 9px; text-align: center;
+  color: var(--muted); font-size: 11px; z-index: 30;
+}
+.tv-wrap { width: 100%; height: 320px; border-radius: 10px; overflow: hidden; background: #0d141d; margin-top: 8px; }
+.tv-wrap iframe { width: 100%; height: 100%; border: 0; }
+.instrument-tabs { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 8px; -webkit-overflow-scrolling: touch; }
+.instrument-tabs button {
+  background: #0e151e; border: 1px solid var(--line); color: var(--muted);
+  padding: 7px 11px; border-radius: 8px; white-space: nowrap; font-size: 12px;
+}
+.instrument-tabs button.active { color: var(--gold); border-color: var(--gold); background: #262316; }
+.tf-row { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
+.tf-row button {
+  background: #0e151e; border: 1px solid var(--line); color: var(--muted);
+  padding: 6px 10px; border-radius: 7px; font-size: 12px;
+}
+.tf-row button.active { color: var(--gold); border-color: var(--gold); }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-grid .full { grid-column: 1 / -1; }
+.stats-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.stats-bar .metric { flex: 1 1 110px; min-width: 100px; }
+.proxy-note { font-size: 11px; color: var(--muted); margin-top: 6px; padding: 6px 8px; background: #1a2230; border-radius: 6px; }
+.empty-state { text-align: center; color: var(--muted); padding: 18px 10px; font-size: 13px; }
+.equity-wrap { background: #0e151e; border: 1px solid var(--line); border-radius: 10px; padding: 10px; margin-top: 10px; }
+.equity-wrap canvas { width: 100%; height: 140px; display: block; }
+.btn-sm { padding: 5px 10px; font-size: 11px; margin-left: 4px; }
+.trade-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+@media (max-width: 520px) {
+  .grid, .grid-3, .form-grid, .brokerlist { grid-template-columns: 1fr 1fr; }
+  .title { font-size: 18px; }
+  .tv-wrap { height: 280px; }
+}
+@media (max-width: 380px) {
+  .grid, .form-grid { grid-template-columns: 1fr; }
+  .brokerlist { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">TRADING COMMAND CENTRE</div>
+  <div class="title" id="pageTitle">Overview</div>
+  <div class="sub">Demo workspace · Simulation only</div>
+</header>
+
+<div class="wrap">
+  <div class="notice">
+    <b>SIMULATION ONLY:</b> Educational prototype. Nothing connects to a broker, collects login details, places real orders, or generates live signals. All balances, positions and results are hypothetical and stored only in this browser.
+  </div>
+
+  <nav class="tabs" id="mainTabs">
+    <button class="tab active" data-tab="overview">Overview</button>
+    <button class="tab" data-tab="broker">Broker</button>
+    <button class="tab" data-tab="market">Market Watch</button>
+    <button class="tab" data-tab="strategies">Strategies</button>
+    <button class="tab" data-tab="instances">Chart Instances</button>
+    <button class="tab" data-tab="journal">Journal</button>
+    <button class="tab" data-tab="settings">Settings</button>
+  </nav>
+
+  <!-- OVERVIEW -->
+  <section id="overview">
+    <div class="card">
+      <div class="row">
+        <div>
+          <h2 class="section">Account overview</h2>
+          <div class="hint">Hypothetical paper account — local browser data only.</div>
+        </div>
+        <span class="badge" id="ovEnvBadge">DEMO</span>
+      </div>
+      <div class="grid" style="margin-top:12px">
+        <div class="metric"><small>Paper balance</small><strong id="ovBalance">$1,000.00</strong></div>
+        <div class="metric"><small>Equity</small><strong id="ovEquity">$1,000.00</strong></div>
+        <div class="metric"><small>Net P/L</small><strong id="ovNetPL">$0.00</strong></div>
+        <div class="metric"><small>Open positions</small><strong id="ovOpenPos">0</strong></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="section">Command status</h2>
+      <div class="grid" style="margin-top:10px">
+        <div class="metric"><small>Broker profile</small><strong id="ovBroker">Exness</strong></div>
+        <div class="metric"><small>Connection</small><strong id="ovConn" style="font-size:14px">Offline</strong></div>
+        <div class="metric"><small>Active strategies</small><strong id="ovActiveStrats">0 / 3</strong></div>
+        <div class="metric"><small>Chart instances</small><strong id="ovInstCount">0</strong></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="section">Paper performance</h2>
+      <div class="hint" style="margin-bottom:10px">Derived from closed journal entries only.</div>
+      <div class="grid">
+        <div class="metric"><small>Total trades</small><strong id="ovTrades">0</strong></div>
+        <div class="metric"><small>Win rate</small><strong id="ovWinRate">—</strong></div>
+        <div class="metric"><small>Wins</small><strong id="ovWins" class="pos">0</strong></div>
+        <div class="metric"><small>Losses</small><strong id="ovLosses" class="neg">0</strong></div>
+      </div>
+      <div class="equity-wrap">
+        <div class="hint" style="margin-bottom:6px">Paper equity curve (cumulative closed P/L)</div>
+        <canvas id="equityCanvas" width="600" height="140"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- BROKER -->
+  <section id="broker" class="hidden">
+    <div class="card">
+      <div class="row">
+        <div>
+          <h2 class="section">Select broker</h2>
+          <div class="hint">Visual label only. Does not connect to any broker.</div>
+        </div>
+        <span class="badge">MT5 style</span>
+      </div>
+      <div class="brokerlist" id="brokerlist">
+        <button class="brokeropt selected" data-broker="Exness">EX <b>Exness</b><span>MT5 broker</span></button>
+        <button class="brokeropt" data-broker="XM">XM <b>XM</b><span>MT5 broker</span></button>
+        <button class="brokeropt" data-broker="IC Markets">IC <b>IC Markets</b><span>MT5 broker</span></button>
+        <button class="brokeropt" data-broker="Pepperstone">PE <b>Pepperstone</b><span>MT5 broker</span></button>
+        <button class="brokeropt" data-broker="Other">MT <b>Other</b><span>Generic option</span></button>
+      </div>
+      <label>Account environment</label>
+      <select id="environment" disabled><option>DEMO / SIMULATION</option></select>
+      <div style="margin-top:14px" class="row">
+        <div><div class="hint">Selected broker</div><b id="selectedBroker">Exness</b></div>
+        <span class="badge warn" id="connectionBadge">Not connected</span>
+      </div>
+      <div style="margin-top:14px" class="row">
+        <button class="primary" id="connectBtn">Start demo simulation</button>
+        <button class="secondary" id="disconnectBtn">Disconnect</button>
+      </div>
+      <div id="connectionMessage" class="hint" style="margin-top:12px">No simulated session is active.</div>
+    </div>
+    <div class="card">
+      <h2 class="section">Account preview</h2>
+      <div class="hint" style="margin-bottom:12px">Hypothetical figures only.</div>
+      <div class="grid">
+        <div class="metric"><small>Balance</small><strong id="brokerBal">$1,000.00</strong></div>
+        <div class="metric"><small>Equity</small><strong id="brokerEq">$1,000.00</strong></div>
+        <div class="metric"><small>Open positions</small><strong id="brokerPos">0</strong></div>
+        <div class="metric"><small>Environment</small><strong style="font-size:14px;color:var(--green)">DEMO</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MARKET WATCH -->
+  <section id="market" class="hidden">
+    <div class="card">
+      <h2 class="section">Market Watch</h2>
+      <div class="hint">Embedded TradingView charts. Educational viewing only.</div>
+      <div class="instrument-tabs" id="instTabs">
+        <button data-sym="XAUUSD" class="active">XAUUSD</button>
+        <button data-sym="XAGUSD">XAGUSD</button>
+        <button data-sym="BTCUSD">BTCUSD</button>
+        <button data-sym="GBPJPY">GBPJPY</button>
+        <button data-sym="USDJPY">USDJPY</button>
+        <button data-sym="EURUSD">EURUSD</button>
+      </div>
+      <div class="tf-row" id="tfRow">
+        <button data-tf="1" class="active">M1</button>
+        <button data-tf="3">M3</button>
+        <button data-tf="5">M5</button>
+        <button data-tf="15">M15</button>
+        <button data-tf="30">M30</button>
+        <button data-tf="60">H1</button>
+        <button data-tf="240">H4</button>
+        <button data-tf="D">D1</button>
+      </div>
+      <div id="proxyNote" class="proxy-note hidden">BTCUSD is not available on the free TradingView widget. Showing <b>BTCUSDT</b> as proxy.</div>
+      <div class="tv-wrap" id="tvContainer"></div>
+    </div>
+  </section>
+
+  <!-- STRATEGIES -->
+  <section id="strategies" class="hidden">
+    <div class="card">
+      <h2 class="section">Strategy monitors</h2>
+      <div class="hint">Independent local switches only. They do not generate signals or execute trades.</div>
+      <div id="strategyList"></div>
+    </div>
+  </section>
+
+  <!-- CHART INSTANCES -->
+  <section id="instances" class="hidden">
+    <div class="card">
+      <h2 class="section">Add chart instance</h2>
+      <div class="hint">Independent analysis records. Stored locally only.</div>
+      <label>Strategy</label>
+      <select id="instStrategy">
+        <option>CRT Three Candle</option>
+        <option>VWAP Mean Reversion</option>
+        <option>VWAP + EMA</option>
+      </select>
+      <label>Instrument</label>
+      <select id="instSymbol">
+        <option>XAUUSD</option><option>XAGUSD</option><option>BTCUSD</option>
+        <option>GBPJPY</option><option>USDJPY</option><option>EURUSD</option>
+      </select>
+      <label>Timeframe</label>
+      <select id="instTf">
+        <option>M1</option><option>M3</option><option>M5</option><option>M15</option>
+        <option>M30</option><option>H1</option><option>H4</option><option>D1</option>
+      </select>
+      <button class="primary" id="addInstanceBtn" style="margin-top:14px;width:100%">Add chart instance</button>
+      <div id="instancesList"></div>
+    </div>
+  </section>
+
+  <!-- JOURNAL -->
+  <section id="journal" class="hidden">
+    <div class="card">
+      <h2 class="section">Paper-trading journal</h2>
+      <div class="hint">Record hypothetical trades. P/L updates paper balance. Nothing is sent to a broker.</div>
+
+      <div class="stats-bar">
+        <div class="metric"><small>Net P/L</small><strong id="jNet">$0.00</strong></div>
+        <div class="metric"><small>Win rate</small><strong id="jWinRate">—</strong></div>
+        <div class="metric"><small>Trades</small><strong id="jCount">0</strong></div>
+        <div class="metric"><small>Open</small><strong id="jOpen">0</strong></div>
+      </div>
+
+      <div id="journalForm">
+        <input type="hidden" id="editId" value="">
+        <div class="form-grid">
+          <div>
+            <label>Instrument</label>
+            <select id="jSymbol">
+              <option>XAUUSD</option><option>XAGUSD</option><option>BTCUSD</option>
+              <option>GBPJPY</option><option>USDJPY</option><option>EURUSD</option>
+            </select>
+          </div>
+          <div>
+            <label>Strategy</label>
+            <select id="jStrategy">
+              <option>CRT Three Candle</option>
+              <option>VWAP Mean Reversion</option>
+              <option>VWAP + EMA</option>
+              <option>Manual / Other</option>
+            </select>
+          </div>
+          <div>
+            <label>Direction</label>
+            <select id="jSide"><option value="Buy">Buy / Long</option><option value="Sell">Sell / Short</option></select>
+          </div>
+          <div>
+            <label>Status</label>
+            <select id="jStatus">
+              <option value="closed">Closed</option>
+              <option value="open">Open (hypothetical)</option>
+            </select>
+          </div>
+          <div>
+            <label>Entry price</label>
+            <input type="number" id="jEntry" step="any" placeholder="e.g. 2650.50">
+          </div>
+          <div>
+            <label>Exit price</label>
+            <input type="number" id="jExit" step="any" placeholder="Required if Closed">
+          </div>
+          <div>
+            <label>Stop-loss</label>
+            <input type="number" id="jSL" step="any" placeholder="Optional">
+          </div>
+          <div>
+            <label>Take-profit</label>
+            <input type="number" id="jTP" step="any" placeholder="Optional">
+          </div>
+          <div>
+            <label>Position size (lots)</label>
+            <input type="number" id="jLots" step="0.01" min="0.01" value="0.01">
+          </div>
+          <div>
+            <label>P/L (USD) — leave blank to auto-calc</label>
+            <input type="number" id="jPL" step="0.01" placeholder="Auto if blank">
+          </div>
+          <div class="full">
+            <label>Notes</label>
+            <input type="text" id="jNotes" placeholder="Setup, reason, lessons…">
+          </div>
+        </div>
+        <button class="primary" id="addTradeBtn" style="margin-top:14px;width:100%">Add paper trade</button>
+        <button class="secondary hidden" id="cancelEditBtn" style="margin-top:8px;width:100%">Cancel edit</button>
+        <div id="journalMsg" class="hint" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="section">Trade history</h2>
+      <div id="tradeHistory"></div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="settings" class="hidden">
+    <div class="card">
+      <h2 class="section">Demo settings</h2>
+      <div class="hint">Saved only in this browser (localStorage key: tcc_state_v2).</div>
+
+      <label>Broker profile label</label>
+      <select id="setBroker">
+        <option>Exness</option><option>XM</option><option>IC Markets</option>
+        <option>Pepperstone</option><option>Other</option>
+      </select>
+
+      <label>Paper account starting balance (USD)</label>
+      <input type="number" id="setStartBal" min="100" step="100" value="1000">
+
+      <label>Maximum lot-size reference</label>
+      <input type="number" id="setMaxLot" min="0.01" step="0.01" value="0.05">
+
+      <label>Maximum paper positions reference</label>
+      <input type="number" id="setMaxPos" min="1" step="1" value="5">
+
+      <button class="primary" id="saveSettingsBtn" style="margin-top:14px;width:100%">Save settings</button>
+      <button class="danger" id="resetAllBtn" style="margin-top:8px;width:100%">Reset paper account (with confirmation)</button>
+      <div id="settingsMsg" class="hint" style="margin-top:10px"></div>
+    </div>
+  </section>
+</div>
+
+<div class="footer">TRADING COMMAND CENTRE · DEMO PROTOTYPE · NO LIVE TRADING</div>
+
+<script>
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'tcc_state_v2';
+
+  const STRATEGIES = [
+    { id: 'crt', name: 'CRT Three Candle', desc: 'Three-candle concept' },
+    { id: 'vwap_mr', name: 'VWAP Mean Reversion', desc: 'Return-toward-VWAP concept' },
+    { id: 'vwap_ema', name: 'VWAP + EMA', desc: 'VWAP and EMA concept' }
+  ];
+
+  const TV_MAP = {
+    XAUUSD: { symbol: 'OANDA:XAUUSD', label: 'XAUUSD' },
+    XAGUSD: { symbol: 'OANDA:XAGUSD', label: 'XAGUSD' },
+    BTCUSD: { symbol: 'BINANCE:BTCUSDT', label: 'BTCUSD', proxy: 'BTCUSDT' },
+    GBPJPY: { symbol: 'OANDA:GBPJPY', label: 'GBPJPY' },
+    USDJPY: { symbol: 'OANDA:USDJPY', label: 'USDJPY' },
+    EURUSD: { symbol: 'OANDA:EURUSD', label: 'EURUSD' }
+  };
+
+  const DEFAULT_STATE = {
+    version: 2,
+    broker: 'Exness',
+    connected: false,
+    startingBalance: 1000,
+    maxLot: 0.05,
+    maxPositions: 5,
+    strategies: { crt: false, vwap_mr: false, vwap_ema: false },
+    instances: [],
+    trades: [],
+    marketSym: 'XAUUSD',
+    marketTf: '1'
+  };
+
+  let state = loadState();
+  let editingId = null;
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return structuredClone(DEFAULT_STATE);
+      const parsed = JSON.parse(raw);
+      // Merge safely
+      const s = Object.assign(structuredClone(DEFAULT_STATE), parsed);
+      if (!s.strategies) s.strategies = structuredClone(DEFAULT_STATE.strategies);
+      if (!Array.isArray(s.trades)) s.trades = [];
+      if (!Array.isArray(s.instances)) s.instances = [];
+      return s;
+    } catch (e) {
+      return structuredClone(DEFAULT_STATE);
+    }
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) { /* quota or private mode */ }
+  }
+
+  function money(n) {
+    const v = Number(n) || 0;
+    const sign = v < 0 ? '-' : '';
+    return sign + '$' + Math.abs(v).toFixed(2);
+  }
+
+  function calcStats() {
+    const trades = state.trades || [];
+    let wins = 0, losses = 0, net = 0, openCount = 0, floating = 0;
+    trades.forEach(t => {
+      if (t.status === 'open') {
+        openCount++;
+        // Floating P/L is not auto-calculated without live price; keep 0 for demo honesty
+      } else {
+        const pl = Number(t.pl) || 0;
+        net += pl;
+        if (pl > 0) wins++;
+        else if (pl < 0) losses++;
+      }
+    });
+    const closed = wins + losses;
+    const winRate = closed ? ((wins / closed) * 100).toFixed(1) + '%' : '—';
+    const balance = state.startingBalance + net;
+    const equity = balance + floating; // floating currently 0
+    return { wins, losses, net, total: closed, openCount, winRate, balance, equity, floating };
+  }
+
+  // ---------- Tabs ----------
+  const titles = {
+    overview: 'Overview', broker: 'Broker Management', market: 'Market Watch',
+    strategies: 'Strategy Monitors', instances: 'Chart Instances',
+    journal: 'Paper Journal', settings: 'Settings'
+  };
+
+  document.querySelectorAll('#mainTabs .tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#mainTabs .tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('section').forEach(s => s.classList.add('hidden'));
+      const id = btn.dataset.tab;
+      document.getElementById(id).classList.remove('hidden');
+      document.getElementById('pageTitle').textContent = titles[id] || id;
+      if (id === 'market') renderTV();
+      if (id === 'overview') renderOverview();
+      if (id === 'journal') renderJournal();
+      if (id === 'strategies') renderStrategies();
+      if (id === 'instances') renderInstances();
+      if (id === 'broker') renderBroker();
+      if (id === 'settings') renderSettings();
+    });
+  });
+
+  // ---------- Equity curve ----------
+  function drawEquityCurve() {
+    const canvas = document.getElementById('equityCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = 140 * dpr;
+    ctx.scale(dpr, dpr);
+    const w = rect.width;
+    const h = 140;
+
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#0e151e';
+    ctx.fillRect(0, 0, w, h);
+
+    const closed = (state.trades || []).filter(t => t.status !== 'open');
+    if (closed.length === 0) {
+      ctx.fillStyle = '#8fa0b5';
+      ctx.font = '12px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('No closed trades yet', w / 2, h / 2);
+      return;
+    }
+
+    // Build cumulative series
+    let cum = state.startingBalance;
+    const points = [{ x: 0, y: cum }];
+    closed.forEach((t, i) => {
+      cum += Number(t.pl) || 0;
+      points.push({ x: i + 1, y: cum });
+    });
+
+    const ys = points.map(p => p.y);
+    let minY = Math.min(...ys);
+    let maxY = Math.max(...ys);
+    if (minY === maxY) { minY -= 10; maxY += 10; }
+    const pad = (maxY - minY) * 0.1 || 5;
+    minY -= pad; maxY += pad;
+
+    const toX = i => (i / (points.length - 1 || 1)) * (w - 20) + 10;
+    const toY = v => h - 15 - ((v - minY) / (maxY - minY)) * (h - 30);
+
+    // Zero / start line
+    ctx.strokeStyle = '#263548';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(10, toY(state.startingBalance));
+    ctx.lineTo(w - 10, toY(state.startingBalance));
+    ctx.stroke();
+
+    // Curve
+    ctx.strokeStyle = points[points.length - 1].y >= state.startingBalance ? '#39c98a' : '#f07878';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    points.forEach((p, i) => {
+      const x = toX(i);
+      const y = toY(p.y);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+
+    // End label
+    ctx.fillStyle = '#edf3fb';
+    ctx.font = '11px Arial';
+    ctx.textAlign = 'right';
+    ctx.fillText(money(points[points.length - 1].y), w - 12, toY(points[points.length - 1].y) - 6);
+  }
+
+  // ---------- Overview ----------
+  function renderOverview() {
+    const s = calcStats();
+    document.getElementById('ovBalance').textContent = money(s.balance);
+    document.getElementById('ovEquity').textContent = money(s.equity);
+    const netEl = document.getElementById('ovNetPL');
+    netEl.textContent = money(s.net);
+    netEl.className = s.net > 0 ? 'pos' : (s.net < 0 ? 'neg' : '');
+    document.getElementById('ovOpenPos').textContent = s.openCount;
+    document.getElementById('ovBroker').textContent = state.broker;
+    document.getElementById('ovConn').textContent = state.connected ? 'Demo active' : 'Offline';
+    const active = Object.values(state.strategies).filter(Boolean).length;
+    document.getElementById('ovActiveStrats').textContent = active + ' / 3';
+    document.getElementById('ovInstCount').textContent = state.instances.length;
+    document.getElementById('ovTrades').textContent = s.total;
+    document.getElementById('ovWinRate').textContent = s.winRate;
+    document.getElementById('ovWins').textContent = s.wins;
+    document.getElementById('ovLosses').textContent = s.losses;
+    drawEquityCurve();
+  }
+
+  // ---------- Broker ----------
+  function renderBroker() {
+    document.querySelectorAll('.brokeropt').forEach(b => {
+      b.classList.toggle('selected', b.dataset.broker === state.broker);
+    });
+    document.getElementById('selectedBroker').textContent = state.broker;
+    updateConnectionUI();
+    const s = calcStats();
+    document.getElementById('brokerBal').textContent = money(s.balance);
+    document.getElementById('brokerEq').textContent = money(s.equity);
+    document.getElementById('brokerPos').textContent = s.openCount;
+  }
+
+  function updateConnectionUI() {
+    const badge = document.getElementById('connectionBadge');
+    badge.textContent = state.connected ? 'Demo simulation active' : 'Not connected';
+    badge.className = 'badge ' + (state.connected ? 'good' : 'warn');
+    document.getElementById('connectionMessage').textContent = state.connected
+      ? 'Demo simulation started for ' + state.broker + '. Local visual state only — no broker connection was made.'
+      : 'No simulated session is active.';
+  }
+
+  document.querySelectorAll('.brokeropt').forEach(b => {
+    b.addEventListener('click', () => {
+      state.broker = b.dataset.broker;
+      state.connected = false;
+      saveState();
+      renderBroker();
+      renderOverview();
+    });
+  });
+  document.getElementById('connectBtn').addEventListener('click', () => {
+    state.connected = true; saveState(); updateConnectionUI(); renderOverview();
+  });
+  document.getElementById('disconnectBtn').addEventListener('click', () => {
+    state.connected = false; saveState(); updateConnectionUI(); renderOverview();
+  });
+
+  // ---------- Market Watch ----------
+  let currentSym = state.marketSym || 'XAUUSD';
+  let currentTf = state.marketTf || '1';
+
+  function renderTV() {
+    const map = TV_MAP[currentSym] || TV_MAP.XAUUSD;
+    const note = document.getElementById('proxyNote');
+    if (map.proxy) {
+      note.classList.remove('hidden');
+      note.innerHTML = 'BTCUSD is not available on the free TradingView widget. Showing <b>' + map.proxy + '</b> as proxy.';
+    } else {
+      note.classList.add('hidden');
+    }
+    const container = document.getElementById('tvContainer');
+    container.innerHTML = '';
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+    script.async = true;
+    script.type = 'text/javascript';
+    script.innerHTML = JSON.stringify({
+      autosize: true, symbol: map.symbol, interval: currentTf,
+      timezone: 'Etc/UTC', theme: 'dark', style: '1', locale: 'en',
+      enable_publishing: false, hide_top_toolbar: false, hide_legend: false,
+      save_image: false, calendar: false, support_host: 'https://www.tradingview.com'
+    });
+    const wrap = document.createElement('div');
+    wrap.className = 'tradingview-widget-container';
+    wrap.style.cssText = 'height:100%;width:100%';
+    const widget = document.createElement('div');
+    widget.className = 'tradingview-widget-container__widget';
+    widget.style.cssText = 'height:100%;width:100%';
+    wrap.appendChild(widget);
+    wrap.appendChild(script);
+    container.appendChild(wrap);
+
+    document.querySelectorAll('#instTabs button').forEach(b => b.classList.toggle('active', b.dataset.sym === currentSym));
+    document.querySelectorAll('#tfRow button').forEach(b => b.classList.toggle('active', b.dataset.tf === currentTf));
+  }
+
+  document.querySelectorAll('#instTabs button').forEach(b => {
+    b.addEventListener('click', () => {
+      currentSym = b.dataset.sym; state.marketSym = currentSym; saveState(); renderTV();
+    });
+  });
+  document.querySelectorAll('#tfRow button').forEach(b => {
+    b.addEventListener('click', () => {
+      currentTf = b.dataset.tf; state.marketTf = currentTf; saveState(); renderTV();
+    });
+  });
+
+  // ---------- Strategies ----------
+  function renderStrategies() {
+    const list = document.getElementById('strategyList');
+    list.innerHTML = '';
+    STRATEGIES.forEach(s => {
+      const on = !!state.strategies[s.id];
+      const div = document.createElement('div');
+      div.className = 'instance';
+      div.innerHTML = '<div class="row"><div><strong>' + s.name + '</strong><small>' + s.desc + '</small></div>' +
+        '<button class="' + (on ? 'danger' : 'secondary') + '" data-id="' + s.id + '">' + (on ? 'Stop' : 'Start') + '</button></div>';
+      list.appendChild(div);
+    });
+    list.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.strategies[btn.dataset.id] = !state.strategies[btn.dataset.id];
+        saveState(); renderStrategies(); renderOverview();
+      });
+    });
+  }
+
+  // ---------- Chart Instances ----------
+  function renderInstances() {
+    const list = document.getElementById('instancesList');
+    list.innerHTML = '';
+    if (!state.instances.length) {
+      list.innerHTML = '<div class="empty-state">No chart instances yet.</div>';
+      return;
+    }
+    state.instances.forEach((inst, idx) => {
+      const div = document.createElement('div');
+      div.className = 'instance';
+      div.innerHTML = '<div class="row"><div><strong>' + inst.strategy + '</strong><small>' +
+        inst.symbol + ' · ' + inst.tf + ' · Demo</small></div>' +
+        '<button class="danger" data-idx="' + idx + '">Remove</button></div>';
+      list.appendChild(div);
+    });
+    list.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.instances.splice(Number(btn.dataset.idx), 1);
+        saveState(); renderInstances(); renderOverview();
+      });
+    });
+  }
+
+  document.getElementById('addInstanceBtn').addEventListener('click', () => {
+    state.instances.push({
+      id: Date.now(),
+      strategy: document.getElementById('instStrategy').value,
+      symbol: document.getElementById('instSymbol').value,
+      tf: document.getElementById('instTf').value,
+      created: new Date().toISOString()
+    });
+    saveState(); renderInstances(); renderOverview();
+  });
+
+  // ---------- Journal ----------
+  function clearJournalForm() {
+    editingId = null;
+    document.getElementById('editId').value = '';
+    document.getElementById('jEntry').value = '';
+    document.getElementById('jExit').value = '';
+    document.getElementById('jSL').value = '';
+    document.getElementById('jTP').value = '';
+    document.getElementById('jLots').value = '0.01';
+    document.getElementById('jPL').value = '';
+    document.getElementById('jNotes').value = '';
+    document.getElementById('jStatus').value = 'closed';
+    document.getElementById('addTradeBtn').textContent = 'Add paper trade';
+    document.getElementById('cancelEditBtn').classList.add('hidden');
+  }
+
+  function fillJournalForm(t) {
+    editingId = t.id;
+    document.getElementById('editId').value = t.id;
+    document.getElementById('jSymbol').value = t.symbol;
+    document.getElementById('jStrategy').value = t.strategy || 'Manual / Other';
+    document.getElementById('jSide').value = t.side;
+    document.getElementById('jStatus').value = t.status || 'closed';
+    document.getElementById('jEntry').value = t.entry;
+    document.getElementById('jExit').value = t.exit != null ? t.exit : '';
+    document.getElementById('jSL').value = t.sl != null ? t.sl : '';
+    document.getElementById('jTP').value = t.tp != null ? t.tp : '';
+    document.getElementById('jLots').value = t.lots;
+    document.getElementById('jPL').value = t.pl != null ? t.pl : '';
+    document.getElementById('jNotes').value = t.notes || '';
+    document.getElementById('addTradeBtn').textContent = 'Save changes';
+    document.getElementById('cancelEditBtn').classList.remove('hidden');
+    document.getElementById('journalForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function renderJournal() {
+    const s = calcStats();
+    const netEl = document.getElementById('jNet');
+    netEl.textContent = money(s.net);
+    netEl.className = s.net > 0 ? 'pos' : (s.net < 0 ? 'neg' : '');
+    document.getElementById('jWinRate').textContent = s.winRate;
+    document.getElementById('jCount').textContent = s.total;
+    document.getElementById('jOpen').textContent = s.openCount;
+
+    const hist = document.getElementById('tradeHistory');
+    hist.innerHTML = '';
+    if (!state.trades.length) {
+      hist.innerHTML = '<div class="empty-state">No paper trades recorded yet.</div>';
+      return;
+    }
+    const ordered = state.trades.slice().reverse();
+    ordered.forEach((t) => {
+      const plClass = (t.pl || 0) > 0 ? 'pos' : ((t.pl || 0) < 0 ? 'neg' : '');
+      const statusBadge = t.status === 'open' ? '<span class="badge warn">OPEN</span> ' : '';
+      const div = document.createElement('div');
+      div.className = 'trade-row';
+      div.innerHTML =
+        '<div class="row">' +
+          '<div>' +
+            '<strong>' + statusBadge + t.side + ' ' + t.symbol + '</strong>' +
+            '<small>' +
+              (t.strategy ? t.strategy + ' · ' : '') +
+              'Entry ' + t.entry +
+              (t.exit != null && t.exit !== '' ? ' → Exit ' + t.exit : '') +
+              (t.sl != null && t.sl !== '' ? ' · SL ' + t.sl : '') +
+              (t.tp != null && t.tp !== '' ? ' · TP ' + t.tp : '') +
+              ' · ' + t.lots + ' lots' +
+              (t.notes ? ' · ' + t.notes : '') +
+            '</small>' +
+            '<div class="trade-actions">' +
+              '<button class="secondary btn-sm" data-action="edit" data-id="' + t.id + '">Edit</button>' +
+              '<button class="danger btn-sm" data-action="delete" data-id="' + t.id + '">Delete</button>' +
+            '</div>' +
+          '</div>' +
+          '<div style="text-align:right">' +
+            '<strong class="' + plClass + '">' + (t.status === 'open' ? '—' : money(t.pl)) + '</strong>' +
+          '</div>' +
+        '</div>';
+      hist.appendChild(div);
+    });
+
+    hist.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = Number(btn.dataset.id);
+        const action = btn.dataset.action;
+        if (action === 'delete') {
+          state.trades = state.trades.filter(t => t.id !== id);
+          saveState();
+          renderJournal(); renderOverview(); renderBroker();
+        } else if (action === 'edit') {
+          const t = state.trades.find(x => x.id === id);
+          if (t) fillJournalForm(t);
+        }
+      });
+    });
+  }
+
+  document.getElementById('cancelEditBtn').addEventListener('click', () => {
+    clearJournalForm();
+    document.getElementById('journalMsg').textContent = 'Edit cancelled.';
+  });
+
+  document.getElementById('addTradeBtn').addEventListener('click', () => {
+    const symbol = document.getElementById('jSymbol').value;
+    const strategy = document.getElementById('jStrategy').value;
+    const side = document.getElementById('jSide').value;
+    const status = document.getElementById('jStatus').value;
+    const entry = parseFloat(document.getElementById('jEntry').value);
+    const exitRaw = document.getElementById('jExit').value;
+    const exit = exitRaw === '' ? null : parseFloat(exitRaw);
+    const slRaw = document.getElementById('jSL').value;
+    const sl = slRaw === '' ? null : parseFloat(slRaw);
+    const tpRaw = document.getElementById('jTP').value;
+    const tp = tpRaw === '' ? null : parseFloat(tpRaw);
+    const lots = parseFloat(document.getElementById('jLots').value) || 0.01;
+    let pl = parseFloat(document.getElementById('jPL').value);
+    const notes = (document.getElementById('jNotes').value || '').trim();
+    const msg = document.getElementById('journalMsg');
+
+    if (isNaN(entry)) {
+      msg.textContent = 'Entry price is required.';
+      return;
+    }
+    if (status === 'closed' && (exit === null || isNaN(exit))) {
+      msg.textContent = 'Exit price is required for closed trades.';
+      return;
+    }
+
+    // Auto-calc simple educational P/L for closed trades if blank
+    if (status === 'closed' && isNaN(pl)) {
+      const diff = side === 'Buy' ? (exit - entry) : (entry - exit);
+      pl = Math.round(diff * (lots / 0.01) * 100) / 100;
+    }
+    if (status === 'open') pl = 0;
+
+    const trade = {
+      id: editingId || Date.now(),
+      symbol, strategy, side, status,
+      entry, exit, sl, tp, lots,
+      pl: status === 'open' ? 0 : (Math.round((pl || 0) * 100) / 100),
+      notes,
+      time: new Date().toISOString()
+    };
+
+    if (editingId) {
+      const idx = state.trades.findIndex(t => t.id === editingId);
+      if (idx >= 0) state.trades[idx] = trade;
+    } else {
+      // Respect max positions for open trades
+      if (status === 'open') {
+        const openNow = state.trades.filter(t => t.status === 'open').length;
+        if (openNow >= state.maxPositions) {
+          msg.textContent = 'Maximum paper positions (' + state.maxPositions + ') reached. Close one or raise the limit in Settings.';
+          return;
+        }
+      }
+      state.trades.push(trade);
+    }
+
+    saveState();
+    clearJournalForm();
+    msg.textContent = editingId ? 'Trade updated.' : 'Paper trade recorded.';
+    renderJournal();
+    renderOverview();
+    renderBroker();
+  });
+
+  // ---------- Settings ----------
+  function renderSettings() {
+    document.getElementById('setBroker').value = state.broker;
+    document.getElementById('setStartBal').value = state.startingBalance;
+    document.getElementById('setMaxLot').value = state.maxLot;
+    document.getElementById('setMaxPos').value = state.maxPositions;
+  }
+
+  document.getElementById('saveSettingsBtn').addEventListener('click', () => {
+    const start = parseFloat(document.getElementById('setStartBal').value);
+    const maxLot = parseFloat(document.getElementById('setMaxLot').value);
+    const maxPos = parseInt(document.getElementById('setMaxPos').value, 10);
+    const broker = document.getElementById('setBroker').value;
+    const msg = document.getElementById('settingsMsg');
+    if (!(start >= 100) || !(maxLot > 0) || !(maxPos >= 1)) {
+      msg.textContent = 'Starting balance ≥ 100, lot > 0, positions ≥ 1 required.';
+      return;
+    }
+    state.startingBalance = start;
+    state.maxLot = maxLot;
+    state.maxPositions = maxPos;
+    state.broker = broker;
+    saveState();
+    msg.textContent = 'Settings saved (tcc_state_v2).';
+    renderOverview();
+    renderBroker();
+  });
+
+  document.getElementById('resetAllBtn').addEventListener('click', () => {
+    if (!confirm('Reset the entire paper account?\n\nThis deletes all trades, chart instances, strategy states and restores default settings.\nThis cannot be undone.')) return;
+    state = structuredClone(DEFAULT_STATE);
+    saveState();
+    clearJournalForm();
+    document.getElementById('settingsMsg').textContent = 'Paper account reset.';
+    renderSettings(); renderOverview(); renderBroker();
+    renderStrategies(); renderInstances(); renderJournal();
+  });
+
+  // ---------- Init ----------
+  renderOverview();
+  renderBroker();
+  renderStrategies();
+  renderInstances();
+  renderJournal();
+  renderSettings();
+
+  // Redraw curve on resize
+  window.addEventListener('resize', () => {
+    if (!document.getElementById('overview').classList.contains('hidden')) drawEquityCurve();
+  });
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+    });
+  }
+})();
+</script>
+</body>
+</html>
